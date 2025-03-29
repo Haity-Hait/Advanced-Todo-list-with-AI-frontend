@@ -28,7 +28,6 @@ const TaskItem = ({ task, index, onUpdateTask, onDeleteTask, onMoveTask, isCompl
   const ref = useRef<HTMLDivElement>(null)
 
   // Check if all subtasks are completed
-  const allSubtasksCompleted = task.subtasks.length > 0 && task.subtasks.every((subtask) => subtask.completed)
 
   // Function to toggle task completion status
   const toggleTaskCompletion = (e: React.MouseEvent) => {

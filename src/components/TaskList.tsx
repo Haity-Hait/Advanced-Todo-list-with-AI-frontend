@@ -48,7 +48,6 @@ const TaskList = ({ tasks, onUpdateTask, onDeleteTask, onMoveTask }: TaskListPro
   })
 
   // Combine the arrays: incomplete tasks first, then completed tasks
-  const allTasks = [...sortedIncompleteTasks, ...sortedCompletedTasks]
 
   // Handle moving tasks within their respective sections
   const handleMoveTask = useCallback(
@@ -70,7 +69,6 @@ const TaskList = ({ tasks, onUpdateTask, onDeleteTask, onMoveTask }: TaskListPro
         newCompletedTasks.splice(adjustedHoverIndex, 0, draggedTask)
 
         // Recombine the arrays and update
-        const newTasks = [...sortedIncompleteTasks, ...newCompletedTasks]
         onMoveTask(dragIndex, hoverIndex)
       }
     },
