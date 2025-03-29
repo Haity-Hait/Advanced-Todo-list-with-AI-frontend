@@ -3,7 +3,7 @@ import type { Task } from "../types"
 // This function will sync tasks with the backend when online
 export async function syncTasks(tasks: Task[]): Promise<void> {
   try {
-    await fetch("http://localhost:5000/api/tasks/sync", {
+    await fetch("https://api-advanced-todo.onrender.com/api/tasks/sync", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -20,7 +20,7 @@ export async function syncTasks(tasks: Task[]): Promise<void> {
 // Add a new function to fetch tasks from the server
 export async function fetchTasksFromServer(): Promise<Task[]> {
   try {
-    const response = await fetch("http://localhost:5000/api/tasks")
+    const response = await fetch("https://api-advanced-todo.onrender.com/api/tasks")
 console.log(response);
 
     if (!response.ok) {

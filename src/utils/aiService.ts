@@ -1,7 +1,7 @@
 // This is a frontend service that will call our backend API
 export async function generateAISuggestions(prompt: string): Promise<string[]> {
     try {
-      const response = await fetch("http://localhost:5000/api/suggestions", {
+      const response = await fetch("https://api-advanced-todo.onrender.com/api/suggestions", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client"
 
 import type React from "react"
@@ -13,6 +14,7 @@ interface TaskItemProps {
   onUpdateTask: (task: Task) => void
   onDeleteTask: (id: string) => void
   onMoveTask: (dragIndex: number, hoverIndex: number) => void
+  isCompleted: boolean
 }
 
 interface DragItem {
@@ -21,15 +23,12 @@ interface DragItem {
   type: string
 }
 
-const TaskItem = ({ task, index, onUpdateTask, onDeleteTask, onMoveTask }: TaskItemProps) => {
+const TaskItem = ({ task, index, onUpdateTask, onDeleteTask, onMoveTask, isCompleted }: TaskItemProps) => {
   const [isExpanded, setIsExpanded] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
   // Check if all subtasks are completed
   const allSubtasksCompleted = task.subtasks.length > 0 && task.subtasks.every((subtask) => subtask.completed)
-
-  // Determine if the task is completed (either manually marked or all subtasks completed)
-  const isTaskCompleted = task.completed || allSubtasksCompleted
 
   // Function to toggle task completion status
   const toggleTaskCompletion = (e: React.MouseEvent) => {
@@ -45,7 +44,7 @@ const TaskItem = ({ task, index, onUpdateTask, onDeleteTask, onMoveTask }: TaskI
   // Function to determine task status
   const getTaskStatus = () => {
     // If task is completed, show completed status
-    if (isTaskCompleted) {
+    if (isCompleted) {
       return {
         text: "Completed",
         color: "text-green-600",
@@ -86,58 +85,81 @@ const TaskItem = ({ task, index, onUpdateTask, onDeleteTask, onMoveTask }: TaskI
     }
   }
 
-  const [{ isDragging }, drag] = useDrag({
-    type: "TASK",
-    item: { index, id: task.id },
-    collect: (monitor) => ({
-      isDragging: monitor.isDragging(),
+  // Only allow dragging if the task is not completed
+  const [{ isDragging }, drag] = useDrag(
+    () => ({
+      type: "TASK",
+      item: { index, id: task.id },
+      canDrag: !isCompleted,
+      collect: (monitor) => ({
+        isDragging: monitor.isDragging(),
+      }),
     }),
-  })
+    [index, task.id, isCompleted],
+  )
 
-  const [, drop] = useDrop({
-    accept: "TASK",
-    hover(item: DragItem, monitor) {
-      if (!ref.current) {
-        return
-      }
-      const dragIndex = item.index
-      const hoverIndex = index
+  const [, drop] = useDrop(
+    () => ({
+      accept: "TASK",
+      hover: (item: DragItem, monitor) => {
+        if (!ref.current) {
+          return
+        }
 
-      // Don't replace items with themselves
-      if (dragIndex === hoverIndex) {
-        return
-      }
+        const dragIndex = item.index
+        const hoverIndex = index
 
-      // Determine rectangle on screen
-      const hoverBoundingRect = ref.current?.getBoundingClientRect()
+        // Don't replace items with themselves
+        if (dragIndex === hoverIndex) {
+          return
+        }
 
-      // Get vertical middle
-      const hoverMiddleY = (hoverBoundingRect.bottom - hoverBoundingRect.top) / 2
+        // Don't allow dropping on completed tasks
+        if (isCompleted) {
+          return
+        }
 
-      // Determine mouse position
-      const clientOffset = monitor.getClientOffset()
+        // Determine rectangle on screen
+        const hoverBoundingRect = ref.current.getBoundingClientRect()
 
-      // Get pixels to the top
-      const hoverClientY = clientOffset!.y - hoverBoundingRect.top
+        // Get vertical middle
+        const hoverMiddleY = (hoverBoundingRect.bottom - hoverBoundingRect.top) / 2
 
-      // Only perform the move when the mouse has crossed half of the items height
-      // When dragging downwards, only move when the cursor is below 50%
-      // When dragging upwards, only move when the cursor is above 50%
-      if (dragIndex < hoverIndex && hoverClientY < hoverMiddleY) {
-        return
-      }
+        // Determine mouse position
+        const clientOffset = monitor.getClientOffset()
 
-      if (dragIndex > hoverIndex && hoverClientY > hoverMiddleY) {
-        return
-      }
+        if (!clientOffset) {
+          return
+        }
 
-      // Time to actually perform the action
-      onMoveTask(dragIndex, hoverIndex)
+        // Get pixels to the top
+        const hoverClientY = clientOffset.y - hoverBoundingRect.top
 
-      item.index = hoverIndex
-    },
-  })
+        // Only perform the move when the mouse has crossed half of the items height
+        // When dragging downwards, only move when the cursor is below 50%
+        // When dragging upwards, only move when the cursor is above 50%
+        if (dragIndex < hoverIndex && hoverClientY < hoverMiddleY) {
+          return
+        }
 
+        if (dragIndex > hoverIndex && hoverClientY > hoverMiddleY) {
+          return
+        }
+
+        // Time to actually perform the action
+        onMoveTask(dragIndex, hoverIndex)
+
+        // Note: we're mutating the monitor item here!
+        // Generally it's better to avoid mutations,
+        // but it's good here for the sake of performance
+        // to avoid expensive index searches.
+        item.index = hoverIndex
+      },
+    }),
+    [index, isCompleted, onMoveTask],
+  )
+
+  // Initialize the drag and drop refs
   drag(drop(ref))
 
   const toggleSubtask = (subtaskId: string) => {
@@ -182,7 +204,7 @@ const TaskItem = ({ task, index, onUpdateTask, onDeleteTask, onMoveTask }: TaskI
       ref={ref}
       className={`bg-white border rounded-lg shadow-sm transition-all ${
         isDragging ? "opacity-50" : "opacity-100"
-      } ${isTaskCompleted ? "border-green-500 border-2" : ""}`}
+      } ${isCompleted ? "border-green-500 border-2" : ""} ${isCompleted ? "cursor-default" : "cursor-move"}`}
     >
       <div className="p-4">
         <div className="flex justify-between items-start">
@@ -201,12 +223,12 @@ const TaskItem = ({ task, index, onUpdateTask, onDeleteTask, onMoveTask }: TaskI
                   )}
                 </button>
               ) : (
-                isTaskCompleted && <CheckCircle className="h-5 w-5 text-green-500" />
+                isCompleted && <CheckCircle className="h-5 w-5 text-green-500" />
               )}
             </div>
             <div className="flex-1">
               <h3
-                className={`text-lg font-medium ${isTaskCompleted ? "text-green-700" : ""} ${task.completed && task.subtasks.length === 0 ? "line-through text-gray-500" : ""}`}
+                className={`text-lg font-medium ${isCompleted ? "text-green-700" : ""} ${task.completed && task.subtasks.length === 0 ? "line-through text-gray-500" : ""}`}
               >
                 {task.title}
               </h3>
@@ -278,3 +300,4 @@ const TaskItem = ({ task, index, onUpdateTask, onDeleteTask, onMoveTask }: TaskI
 }
 
 export default TaskItem
+
